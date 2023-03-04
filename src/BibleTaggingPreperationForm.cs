@@ -13,6 +13,7 @@ namespace BibleTagging
         private string alignerPath = string.Empty;
         private string bibleFileName = string.Empty;
         private string bibleFilePath = string.Empty;
+
         private string otFilePath = string.Empty;
         private string ntFilePath = string.Empty;
 
@@ -72,15 +73,6 @@ namespace BibleTagging
         {
             Trace("Loding ...", Color.Blue);
 
-            string txt = "Then the man who had received one bag of gold came . “ Master ,” he said , “I knew that you are a hard man , harvesting where you have not sown and gathering where you have not scattered seed";
-            PorterStemmer stemmer= new PorterStemmer();
-            string[] parts = txt.Split(new char[] { ' ' });
-            string stemmed = string.Empty;
-            for (int i = 0; i < parts.Length; i++)
-            {
-                stemmed += stemmer.stemTerm(parts[i]) + " ";
-            }
-            stemmed = stemmed.Trim();
             bibleVersification = new BibleVersification(this);
 
             PrepareFolders();           
@@ -120,13 +112,40 @@ namespace BibleTagging
             {
                 bibleFilePath = openFileDialog1.FileName;
 
-                sf = new SpecialFunctions(this);
-                bibleFilePath = sf.ConvertToUbsNames(bibleFilePath);
+                if (zokam)
+                {
+                    sf = new SpecialFunctions(this);
+                    bibleFilePath = sf.ConvertToUbsNames(bibleFilePath);
+                }
                 Trace("\r\nProcessing: " + bibleFilePath, Color.Blue);
                 if (!string.IsNullOrEmpty(bibleFilePath))
                 {
                     ValidateBibleFile(bibleFilePath);
                     Split(bibleFilePath);
+                    BerkeleyAligner ba = new BerkeleyAligner(this);
+                    string ntTagPath = Path.Combine(Path.GetDirectoryName(bibleFilePath), "NT_Tags.txt");
+                    string otTagPath = Path.Combine(Path.GetDirectoryName(bibleFilePath), "OT_Tags.txt");
+                    if (niv)
+                    {
+                        ntTagPath = Path.Combine(Path.GetDirectoryName(bibleFilePath), "NIV_NT_Tags.txt");
+                    }
+                    if (niv)
+                    {
+                        ba.PrepareNT(ntFilePath, ntTagPath, new PorterStemmer(), StopWords.English);
+                        //ba.PrepareNT(ntFilePath, ntTagPath, null, StopWords.English);
+                        ba.AlignNT();
+                        ba.ProcessAlignerMapNT(ntFilePath, StopWords.English);
+                    }
+                    if(zokam)
+                    {
+                        ba.PrepareNT(ntFilePath, ntTagPath, null, null);
+                        ba.AlignNT();
+                        ba.ProcessAlignerMapNT(ntFilePath, null);
+
+                        ba.PrepareOT(otFilePath, otTagPath, null, null);
+                        ba.AlignOT();
+                        ba.ProcessAlignerMapOT(otFilePath, null);
+                    }
                 }
             }
         }
