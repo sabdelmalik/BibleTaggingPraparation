@@ -4,7 +4,7 @@ Prepare Bible text for the Tag Editing Utility
 # BibleTaggingPreperation
 Prepare Bible text for the Tag Editing Utility
 
-This program is based on Dr. Rev. David Instone-Brewer process for
+This program is inspired by Dr. Rev. David Instone-Brewer process for
 automatically tagging a Bible text with Strong’s numbers using Berkely Aligner.
 
 The program does the following: 
