@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
+using System.Text.RegularExpressions;
 //using static System.Net.Mime.MediaTypeNames;
 
 namespace BibleTagging
@@ -13,34 +14,38 @@ namespace BibleTagging
     public class BerkeleyAligner
     {
         private BibleTaggingPreperationForm container;
-        private string alignerFolderName = "berkeleyaligner";
-        private string alignerFolderpath = string.Empty;
+        private const string alignerFolderName = "berkeleyaligner";
+        private const string otMapFolder = "OT_Map";
+        private const string ntMapFolder = "NT_Map";
+        private const string textToAlignExtension = "t";
+        private const string strongsTagsExtension = "s";
+        private const string otTrainFolder = "OT_Dataset\\train";
+        private const string ntTrainFolder = "NT_Dataset\\train";
 
-        private string otMapFolder = "OT_Map";
-        private string ntMapFolder = "NT_Map";
+        private string alignerFolderpath = string.Empty;
 
         private string otMapPath = string.Empty;
         private string ntMapPath = string.Empty;
+        private string foreignSuffix = textToAlignExtension;
+        private string englishSuffix = strongsTagsExtension;
 
-        private string otTextFolder = "OT_Dataset\\train";
-        private string otTextExtension = ".o";
-        private string hebrewTagsExtension = ".h";
-        private string otAlignFile = "training.h-o.align";
+        private string alignFileName = string.Empty;
         private string otTrainTextPath = string.Empty;
         private string hebrewTrainTagsPath = string.Empty;
         private string otAlignFilePath = string.Empty;
 
-        private string ntTextFolder = "NT_Dataset\\train";
-        private string ntTextExtension = ".n";
-        private string greekTagsExtension = ".g";
-        private string ntAlignFile = "training.g-n.align";
         private string ntTrainTextPath = string.Empty;
         private string greekTrainTagsPath = string.Empty;
         private string ntAlignFilePath = string.Empty;
+        private string ntAlignFilePath1 = string.Empty;
+
+        private const string referencePattern1 = @"^([0-9A-Za-z]+)\s([0-9]+):([0-9]+)\s*(.*)";
+        private const string referencePattern2 = @"^([0-9A-Za-z]+)\.([0-9]+)\.([0-9]+)\s*(.*)";
+        private string textReferencePattern = string.Empty;
+        private string tagsReferencePattern = string.Empty;
 
         int totalTags = 0;
         int unmapped = 0;
-        public BerkeleyAligner() { }
         public BerkeleyAligner(BibleTaggingPreperationForm container)
         {
             this.container = container;
@@ -48,17 +53,17 @@ namespace BibleTagging
             string currentFolder = Application.StartupPath;
             alignerFolderpath = Path.Combine(currentFolder, alignerFolderName);
 
+            alignFileName = string.Format("training.{0}-{1}.align", englishSuffix, foreignSuffix);
             otMapPath = Path.Combine(alignerFolderpath, otMapFolder);
-            otAlignFilePath = Path.Combine(otMapPath, otAlignFile);
+            otAlignFilePath = Path.Combine(otMapPath, alignFileName);
 
-            otTrainTextPath = Path.Combine(alignerFolderpath, otTextFolder + "\\oldtestament" + otTextExtension);
-            hebrewTrainTagsPath = Path.Combine(alignerFolderpath, otTextFolder + "\\oldtestament" + hebrewTagsExtension);
+            otTrainTextPath = Path.Combine(alignerFolderpath, otTrainFolder + "\\oldtestament." + textToAlignExtension);
+            hebrewTrainTagsPath = Path.Combine(alignerFolderpath, otTrainFolder + "\\oldtestament." + strongsTagsExtension);
 
             ntMapPath = Path.Combine(alignerFolderpath, ntMapFolder);
-            ntAlignFilePath = Path.Combine(ntMapPath, ntAlignFile);
-            ntTrainTextPath = Path.Combine(alignerFolderpath, ntTextFolder + "\\newtestament" + ntTextExtension);
-            greekTrainTagsPath = Path.Combine(alignerFolderpath, ntTextFolder + "\\newtestament" + greekTagsExtension);
-        
+            ntAlignFilePath = Path.Combine(ntMapPath, alignFileName);
+            ntTrainTextPath = Path.Combine(alignerFolderpath, ntTrainFolder + "\\newtestament." + textToAlignExtension);
+            greekTrainTagsPath = Path.Combine(alignerFolderpath, ntTrainFolder + "\\newtestament." + strongsTagsExtension);
         }
 
         public bool AlignOT()
@@ -190,7 +195,7 @@ namespace BibleTagging
         /// <param name="tagsPath">the tags file for the Bible text</param>
         /// <param name="stemmer">a stemmer, or null if not reqired</param>
         /// <param name="stopwords">list of stopwords or null if not required</param>
-        public void PrepareNT(string sourcePath, string tagsPath, StemmerInterface stemmer, string[] stopwords)
+        public void PrepareNT1(string sourcePath, string tagsPath, StemmerInterface stemmer, string[] stopwords)
         {
             using (StreamReader sr = new StreamReader(sourcePath))
             using (StreamWriter sw = new StreamWriter(ntTrainTextPath))
@@ -249,7 +254,14 @@ namespace BibleTagging
                     */
 
                     int space1 = line.IndexOf('\t');
-                    if (space1 == -1) continue;
+                    if (space1 == -1)
+                        space1 = line.IndexOf(' ');
+                    if (space1 == -1)
+                    {
+                        container.TraceError(MethodBase.GetCurrentMethod().Name, "Missing white space in:" + line);
+                        continue;
+                    }
+                    
                     line = line.Substring(space1 + 1).Trim();
 
                     sw.WriteLine(line);
@@ -258,7 +270,115 @@ namespace BibleTagging
             }
         }
 
-        public void ProcessAlignerMapNT(string referenceFilePath, string[] stopwords)
+        private bool SetSearchPattern(string line, out string referancePattern)
+        {
+            Match mTx = Regex.Match(line, referencePattern1);
+            if (mTx.Success)
+                referancePattern = referencePattern1;
+            else
+            {
+                mTx = Regex.Match(line, referencePattern2);
+                if (mTx.Success)
+                    referancePattern = referencePattern2;
+                else
+                {
+                    container.TraceError(MethodBase.GetCurrentMethod().Name, "Could not detect reference pattern: " + line);
+                    referancePattern = string.Empty;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        public void PrepareNT(string sourcePath, string tagsPath, StemmerInterface stemmer, string[] stopwords)
+        {
+            using (StreamReader srText = new StreamReader(sourcePath ))
+            using (StreamReader srTags = new StreamReader(tagsPath))
+            using (StreamWriter swText = new StreamWriter(ntTrainTextPath))
+            using (StreamWriter swTags = new StreamWriter(greekTrainTagsPath))
+            {
+                while (!srText.EndOfStream && !srTags.EndOfStream)
+                {
+                    var textLine = srText.ReadLine();
+                    if (textLine == null)
+                    {
+                        container.TraceError(MethodBase.GetCurrentMethod().Name, "Empty line in " + tagsPath);
+                        continue;
+                    }
+
+                    var tagsLine = srTags.ReadLine();
+                    if (tagsLine == null)
+                    {
+                        container.TraceError(MethodBase.GetCurrentMethod().Name, "Empty line in " + sourcePath);
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(textReferencePattern))
+                    {
+                        if (!SetSearchPattern(textLine, out textReferencePattern))
+                            return;
+                    }
+                    if (string.IsNullOrEmpty(tagsReferencePattern))
+                    {
+                        if (!SetSearchPattern(tagsLine, out tagsReferencePattern))
+                            return;
+                    }
+                    
+                    Match mTx = Regex.Match(textLine, textReferencePattern);
+                    if (!mTx.Success)
+                    {
+                        container.TraceError(MethodBase.GetCurrentMethod().Name, "Could not detect text reference: " + textLine);
+                        return;
+                    }
+                    Match mTg = Regex.Match(tagsLine, tagsReferencePattern);
+                    if (!mTx.Success)
+                    {
+                        container.TraceError(MethodBase.GetCurrentMethod().Name, "Could not detect tags reference: " + tagsLine);
+                        return;
+                    }
+
+                    String textBook = mTx.Groups[1].Value;
+                    String verseText = mTx.Groups[4].Value.ToLower();
+                    String tagsBook = mTg.Groups[1].Value;
+                    String tagsText = mTg.Groups[4].Value;
+
+
+                    // stem if required
+                    if (stemmer != null || stopwords != null)
+                    {
+                        string[] parts = verseText.Split(new char[] { ' ' });
+
+                        string processed = string.Empty;
+                        for (int i = 0; i < parts.Length; i++)
+                        {
+                            if (stopwords != null && stopwords.Contains(parts[i].ToLower()))
+                                continue;
+
+                            if (stemmer != null)
+                                processed += stemmer.stemTerm(parts[i]) + " ";
+                            else
+                                processed += parts[i] + " ";
+                        }
+                        verseText = processed.Trim();
+                    }
+                    //foreach (string w in stopwords)
+                    //{
+                    //    if (verseText.Contains(w.ToLower() + " "))
+                    //    {
+                    //        container.Trace(string.Format("{0}: {1}", w, verseText), Color.DarkGreen);
+
+                    //        break;
+                    //    }
+                    //}
+                    swText.WriteLine(verseText.ToLower());
+                    swTags.WriteLine(tagsText);
+                }
+            }
+        }
+
+        public void ProcessAlignerMapNT(string referenceFilePath,
+                        Dictionary<string, string> single_words,
+                        Dictionary<string, string> multipleWords)
         {
             Dictionary<string, Statistics> detailedStatistics = new Dictionary<string, Statistics>();
             Dictionary<string, Statistics> bookStatistics = new Dictionary<string, Statistics>();
@@ -269,7 +389,7 @@ namespace BibleTagging
             string currentBook = string.Empty;
             Statistics chapterStats = null;
             Statistics bookStats = null;
-            string unknown = "???";
+            string unknown = "????";
             string lastBook = string.Empty; // "Exo";
 
             var referenceFolder = Path.GetDirectoryName(referenceFilePath);
@@ -314,6 +434,10 @@ namespace BibleTagging
                     string bookName = referenceLine.Substring(0, space1);
 
                     var greekTrainTagsLine = greekTrainTags_reader.ReadLine();
+                    if(verseRef.Contains("11:25"))
+                    {
+                        int x = 0;
+                    }
                     var ntAlignFileLine = ntAlignFile_reader.ReadLine();
 
                     int idx = verseRef.IndexOf(':');
@@ -364,13 +488,21 @@ namespace BibleTagging
 
                     string[] reference_parts = referenceLineText.Split(' ');
                     string[] aligner_parts = ntAlignFileLine.Split(' ');
-                    string[] tag_parts = greekTrainTagsLine.Split(' ');
+                    string[] tag_parts = greekTrainTagsLine.Split(new char[] { ' ', '\t' });
                     string[] translation = new string[reference_parts.Length];
                     string[] tagTranslation = new string[reference_parts.Length];
                     for (int i = 0; i < translation.Length; i++)
                     {
-                        translation[i] = unknown;
-                        tagTranslation[i] = unknown;
+                        if (string.IsNullOrEmpty(greekTrainTagsLine))
+                        {
+                            translation[i] = string.Empty;
+                            tagTranslation[i] = string.Empty;
+                        }
+                        else
+                        {
+                            translation[i] = unknown;
+                            tagTranslation[i] = unknown;
+                        }
                     }
                     for (int i = 0; i < aligner_parts.Length; i++)
                     {
@@ -399,20 +531,32 @@ namespace BibleTagging
                         string referenceWord = reference_parts[j].Trim();
                         bool isPunctuation = referenceWord.Length == 1 ? Char.IsPunctuation(referenceWord[0]) : false;
 
+                        string[] stopwords = single_words.Keys.ToArray();
                         if (j >= translation.Length)
                         {
-                            if (stopwords == null ||(!stopwords.Contains(referenceWord.ToLower()) &&  !isPunctuation))
+                            if (single_words == null ||(!stopwords.Contains(referenceWord.ToLower()) &&  !isPunctuation))
                                 outLine = String.Format("{0}\t{1}\t{2}", referenceWord, unknown, unknown);
                         }
                         else
                         {
                             
-                            if(stopwords != null && (stopwords.Contains(referenceWord.ToLower()) || isPunctuation))
+                            if(single_words != null && stopwords.Contains(referenceWord.ToLower()))
                             {
-                                verse += string.Format(" {0} ", referenceWord);
+                                string strongs = single_words[referenceWord.ToLower()];
+                                if (string.IsNullOrEmpty(strongs))
+                                {
+
+                                    if (verse.EndsWith(" <>"))
+                                        verse = verse.Substring(0, verse.Length - 3);
+                                    verse += string.Format(" {0} <>", referenceWord);
+                                }
+                                else
+                                {
+                                    verse += string.Format(" {0} <{1}>", referenceWord, strongs);
+                                }
                                 continue;
                             }
-                            string tagWord = tagTranslation[mapIndex];
+                            string tagWord = tagTranslation[mapIndex].Replace("G", ""); ;
                             totalTags++;
                             if (tagWord.Contains(unknown)) { unmapped++; }
                             outLine = String.Format("{0}\t{1}\t{2}", referenceWord, translation[mapIndex], tagTranslation[mapIndex]);
@@ -445,6 +589,250 @@ namespace BibleTagging
                     }
 
                 }
+                // Write last verse
+                referenceTaggedFile_writer.WriteLine(verse.Trim());
+            }
+
+            using (StreamWriter outputFileEx = new StreamWriter(Path.Combine(referenceFolder, mapExceptions)))
+            {
+                for (int i = 0; i < exceptions.Count; i++)
+                {
+                    outputFileEx.WriteLine(exceptions[i]);
+                }
+            }
+
+            container.Trace(string.Format("total = {0}, unmapped = {1}", totalTags, unmapped), Color.Blue);
+
+            using (StreamWriter outputFile = new StreamWriter(Path.Combine(referenceFolder, statsFile)))
+            {
+                outputFile.WriteLine("Total Stats");
+                outputFile.WriteLine(string.Format("Total Bible words = {0}", bibleTotal));
+                outputFile.WriteLine(string.Format("Total unmapped words = {0} ({1}%)", bibleUnmapped, (100 * bibleUnmapped / bibleTotal)));
+                outputFile.WriteLine("");
+                outputFile.WriteLine("Book Stats");
+                foreach (string bookName in bookStatistics.Keys)
+                {
+                    outputFile.WriteLine(string.Format("{0}: words = {1}, unmapped = {2} ({3}%)",
+                        bookName,
+                        bookStatistics[bookName].TotalWords,
+                        bookStatistics[bookName].UnmappedWords,
+                        (100 * bookStatistics[bookName].UnmappedWords / bookStatistics[bookName].TotalWords)));
+
+                }
+                outputFile.WriteLine("");
+                outputFile.WriteLine("Chapter Stats");
+                foreach (string chapter in detailedStatistics.Keys)
+                {
+                    outputFile.WriteLine(string.Format("{0}: words = {1}, unmapped = {2} ({3}%)",
+                        chapter,
+                        detailedStatistics[chapter].TotalWords,
+                        detailedStatistics[chapter].UnmappedWords,
+                        (100 * detailedStatistics[chapter].UnmappedWords / detailedStatistics[chapter].TotalWords)));
+                }
+            }
+        }
+
+        public void ProcessAlignerMapNT1(string referenceFilePath, string[] stopwords)
+        {
+            Dictionary<string, Statistics> detailedStatistics = new Dictionary<string, Statistics>();
+            Dictionary<string, Statistics> bookStatistics = new Dictionary<string, Statistics>();
+            List<string> exceptions = new List<string>();
+
+            string currentVerseReference = string.Empty;
+            string currentChapterReference = string.Empty;
+            string currentBook = string.Empty;
+            Statistics chapterStats = null;
+            Statistics bookStats = null;
+            string unknown = "????";
+            string lastBook = string.Empty; // "Exo";
+
+            var referenceFolder = Path.GetDirectoryName(referenceFilePath);
+            var outFileName = Path.GetFileNameWithoutExtension(referenceFilePath) + "Tagged.txt";
+
+            string mapFile = "nt_map.txt";
+            string mapExceptions = "nt_mapExceptions.txt";
+            string statsFile = "nt_stats.txt";
+
+            int bibleTotal = 0;
+            int bibleUnmapped = 0;
+
+            int offset = 0;
+
+            string verse = String.Empty;
+
+            using (StreamReader referenceFile_reader = new StreamReader(referenceFilePath))
+            using (StreamReader greekTrainTags_reader = new StreamReader(greekTrainTagsPath))
+            using (StreamReader ntAlignFile_reader = new StreamReader(ntAlignFilePath1))
+            using (StreamWriter writer_mapFile = new StreamWriter(Path.Combine(referenceFolder, mapFile)))
+            using (StreamWriter referenceTaggedFile_writer = new StreamWriter(Path.Combine(referenceFolder, outFileName)))
+            {
+                while (!referenceFile_reader.EndOfStream && !greekTrainTags_reader.EndOfStream && !ntAlignFile_reader.EndOfStream)
+                {
+                    var referenceLine = referenceFile_reader.ReadLine();
+                    int space1 = referenceLine.IndexOf(' ');
+                    if (space1 == -1)
+                    {
+                        container.TraceError(MethodBase.GetCurrentMethod().Name, "space1 not found");
+                        continue;
+                    }
+                    int space2 = referenceLine.IndexOf(' ', space1 + 1);
+                    if (space2 == -1)
+                    {
+                        container.TraceError(MethodBase.GetCurrentMethod().Name, "space2 not found");
+                        continue;
+                    }
+
+                    string referenceLineText = referenceLine.Substring(space2 + 1).Trim();
+
+                    string verseRef = referenceLine.Substring(0, space2).Trim();
+                    string bookName = referenceLine.Substring(0, space1);
+
+                    var greekTrainTagsLine = greekTrainTags_reader.ReadLine();
+                    if (verseRef.Contains("11:25"))
+                    {
+                        int x = 0;
+                    }
+                    var ntAlignFileLine = ntAlignFile_reader.ReadLine();
+
+                    int idx = verseRef.IndexOf(':');
+                    if (idx != -1)
+                    {
+                        string chapterRef = verseRef.Substring(0, idx);
+                        if (currentVerseReference != verseRef)
+                        {
+                            if (string.IsNullOrEmpty(currentVerseReference))
+                            {
+                                // this is the very first verse
+                                chapterStats = new Statistics();
+                                bookStats = new Statistics();
+
+                                currentChapterReference = chapterRef;
+                                currentBook = bookName;
+                                currentVerseReference = verseRef;
+                                verse = currentVerseReference;
+                                writer_mapFile.WriteLine(String.Format("====\t{0}\t====", currentVerseReference));
+                            }
+                            else
+                            {
+                                // We are changing Verse
+                                // Are we changing chapter
+                                if (currentChapterReference != chapterRef)
+                                {
+                                    // we are changing chapter
+                                    // save the previous chapter
+                                    detailedStatistics.Add(currentChapterReference, chapterStats);
+                                    chapterStats = new Statistics();
+                                    currentChapterReference = chapterRef;
+                                    if (bookName != currentBook)
+                                    {
+                                        bookStatistics.Add(currentBook, bookStats);
+                                        bookStats = new Statistics();
+                                        currentBook = bookName;
+                                        if (currentBook == lastBook)
+                                            break;
+                                    }
+                                }
+                                referenceTaggedFile_writer.WriteLine(verse);
+                                currentVerseReference = verseRef;
+                                verse = currentVerseReference;
+                                writer_mapFile.WriteLine(String.Format("====\t{0}\t====", currentVerseReference));
+                            }
+                        }
+                    }
+
+                    string[] reference_parts = referenceLineText.Split(' ');
+                    string[] aligner_parts = ntAlignFileLine.Split(' ');
+                    string[] tag_parts = greekTrainTagsLine.Split(new char[] { ' ', '\t' });
+                    string[] translation = new string[reference_parts.Length];
+                    string[] tagTranslation = new string[reference_parts.Length];
+                    for (int i = 0; i < translation.Length; i++)
+                    {
+                        if (string.IsNullOrEmpty(greekTrainTagsLine))
+                        {
+                            translation[i] = string.Empty;
+                            tagTranslation[i] = string.Empty;
+                        }
+                        else
+                        {
+                            translation[i] = unknown;
+                            tagTranslation[i] = unknown;
+                        }
+                    }
+                    for (int i = 0; i < aligner_parts.Length; i++)
+                    {
+                        int ai, hi;
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(aligner_parts[i]) && (i + offset) < aligner_parts.Length)
+                            {
+                                string[] map = aligner_parts[i].Split('-');
+                                hi = int.Parse(map[0].Trim());
+                                ai = int.Parse(map[1].Trim());
+                                tagTranslation[ai + offset] = tag_parts[hi + offset];
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            //Console.WriteLine(ex.Message);
+                        }
+                    }
+
+
+                    string outLine = string.Empty;
+                    int mapIndex = 0;
+                    for (int j = 0; j < reference_parts.Length; j++)
+                    {
+                        string referenceWord = reference_parts[j].Trim();
+                        bool isPunctuation = referenceWord.Length == 1 ? Char.IsPunctuation(referenceWord[0]) : false;
+
+                        if (j >= translation.Length)
+                        {
+                            if (stopwords == null || (!stopwords.Contains(referenceWord.ToLower()) && !isPunctuation))
+                                outLine = String.Format("{0}\t{1}\t{2}", referenceWord, unknown, unknown);
+                        }
+                        else
+                        {
+
+                            if (stopwords != null && (stopwords.Contains(referenceWord.ToLower()) || isPunctuation))
+                            {
+                                verse += string.Format(" {0} <> ", referenceWord);
+                                continue;
+                            }
+                            string tagWord = tagTranslation[mapIndex].Replace("G", ""); ;
+                            totalTags++;
+                            if (tagWord.Contains(unknown)) { unmapped++; }
+                            outLine = String.Format("{0}\t{1}\t{2}", referenceWord, translation[mapIndex], tagTranslation[mapIndex]);
+                            verse += string.Format(" {0} <{1}>", referenceWord, tagWord);
+                            mapIndex++;
+                        }
+                        writer_mapFile.WriteLine(outLine);
+                        if (outLine.Contains(unknown))
+                        {
+                            if (!exceptions.Contains(outLine))
+                                exceptions.Add(outLine);
+                        }
+                        try
+                        {
+                            chapterStats.TotalWords++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.ToString());
+                        }
+                        bookStats.TotalWords++;
+                        bibleTotal++;
+
+                        if (outLine.Contains(unknown))
+                        {
+                            chapterStats.UnmappedWords++;
+                            bookStats.UnmappedWords++;
+                            bibleUnmapped++;
+                        }
+                    }
+
+                }
+                // Write last verse
+                referenceTaggedFile_writer.WriteLine(verse);
             }
 
             using (StreamWriter outputFileEx = new StreamWriter(Path.Combine(referenceFolder, mapExceptions)))
@@ -515,12 +903,12 @@ namespace BibleTagging
             string verse = String.Empty;
 
             using (StreamReader referenceFile_reader = new StreamReader(referenceFilePath))
-            using (StreamReader greekTrainTags_reader = new StreamReader(greekTrainTagsPath))
+            using (StreamReader hebrewTrainTags_reader = new StreamReader(hebrewTrainTagsPath))
             using (StreamReader otAlignFile_reader = new StreamReader(otAlignFilePath))
             using (StreamWriter writer_mapFile = new StreamWriter(Path.Combine(referenceFolder, mapFile)))
             using (StreamWriter referenceTaggedFile_writer = new StreamWriter(Path.Combine(referenceFolder, outFileName)))
             {
-                while (!referenceFile_reader.EndOfStream && !greekTrainTags_reader.EndOfStream && !otAlignFile_reader.EndOfStream)
+                while (!referenceFile_reader.EndOfStream && !hebrewTrainTags_reader.EndOfStream && !otAlignFile_reader.EndOfStream)
                 {
                     var referenceLine = referenceFile_reader.ReadLine();
                     int space1 = referenceLine.IndexOf(' ');
@@ -541,7 +929,7 @@ namespace BibleTagging
                     string verseRef = referenceLine.Substring(0, space2).Trim();
                     string bookName = referenceLine.Substring(0, space1);
 
-                    var greekTrainTagsLine = greekTrainTags_reader.ReadLine();
+                    var hebrewTrainTagsLine = hebrewTrainTags_reader.ReadLine();
                     var otAlignFileLine = otAlignFile_reader.ReadLine();
 
                     int idx = verseRef.IndexOf(':');
@@ -592,7 +980,7 @@ namespace BibleTagging
 
                     string[] reference_parts = referenceLineText.Split(' ');
                     string[] aligner_parts = otAlignFileLine.Split(' ');
-                    string[] tag_parts = greekTrainTagsLine.Split(' ');
+                    string[] tag_parts = hebrewTrainTagsLine.Split(new char[] { ' ', '\t' });
                     string[] translation = new string[reference_parts.Length];
                     string[] tagTranslation = new string[reference_parts.Length];
                     for (int i = 0; i < translation.Length; i++)
@@ -629,18 +1017,18 @@ namespace BibleTagging
 
                         if (j >= translation.Length)
                         {
-                            if (stopwords == null || (!stopwords.Contains(referenceWord.ToLower()) && !isPunctuation))
+                            if (stopwords == null || !stopwords.Contains(referenceWord.ToLower()))
                                 outLine = String.Format("{0}\t{1}\t{2}", referenceWord, unknown, unknown);
                         }
                         else
                         {
 
-                            if (stopwords != null && (stopwords.Contains(referenceWord.ToLower()) || isPunctuation))
+                            if (stopwords != null && stopwords.Contains(referenceWord.ToLower()))
                             {
                                 verse += string.Format(" {0} ", referenceWord);
                                 continue;
                             }
-                            string tagWord = tagTranslation[mapIndex];
+                            string tagWord = tagTranslation[mapIndex].Replace("H", "");
                             outLine = String.Format("{0}\t{1}\t{2}", referenceWord, translation[mapIndex], tagTranslation[mapIndex]);
                             verse += string.Format(" {0} <{1}>", referenceWord, tagWord);
                             mapIndex++;
@@ -671,6 +1059,9 @@ namespace BibleTagging
                     }
 
                 }
+                // write last verse
+                referenceTaggedFile_writer.WriteLine(verse);
+
             }
 
             using (StreamWriter outputFileEx = new StreamWriter(Path.Combine(referenceFolder, mapExceptions)))

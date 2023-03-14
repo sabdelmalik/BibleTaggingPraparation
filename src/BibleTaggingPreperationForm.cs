@@ -1,9 +1,10 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 using System.Reflection;
 using BibleTagging.PorterStemmerAlgorithm;
+using System.Text.RegularExpressions;
 
 namespace BibleTagging
 {
@@ -75,6 +76,7 @@ namespace BibleTagging
 
             bibleVersification = new BibleVersification(this);
 
+            StopWords.PopulateStopDictionaries(this);
             PrepareFolders();           
         }
 
@@ -95,10 +97,6 @@ namespace BibleTagging
             { 
                 Directory.CreateDirectory(workFolder);
             }
-
-            // Aligner
-            BerkeleyAligner aligner = new BerkeleyAligner();
-            //aligner.Align();
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -131,16 +129,16 @@ namespace BibleTagging
                     }
                     if (niv)
                     {
-                        ba.PrepareNT(ntFilePath, ntTagPath, new PorterStemmer(), StopWords.English);
+                        ba.PrepareNT(ntFilePath, ntTagPath, new PorterStemmer(), StopWords.EnglishNT1.Keys.ToArray());
                         //ba.PrepareNT(ntFilePath, ntTagPath, null, StopWords.English);
                         ba.AlignNT();
-                        ba.ProcessAlignerMapNT(ntFilePath, StopWords.English);
+                        ba.ProcessAlignerMapNT(ntFilePath, StopWords.EnglishNT1, StopWords.EnglishNT2);
                     }
                     if(zokam)
                     {
                         ba.PrepareNT(ntFilePath, ntTagPath, null, null);
                         ba.AlignNT();
-                        ba.ProcessAlignerMapNT(ntFilePath, null);
+                        ba.ProcessAlignerMapNT(ntFilePath, null, null);
 
                         ba.PrepareOT(otFilePath, otTagPath, null, null);
                         ba.AlignOT();
