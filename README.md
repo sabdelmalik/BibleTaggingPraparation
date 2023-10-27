@@ -15,7 +15,7 @@ The program does the following:
 5.	Run the aligner for both the OT and NT which generates an aligner map for each.
 6.	Use the resulting maps to generate the tagged OT and NT.
 7.	Append the tagged NT file to the tagged OT file to generate the tagged Bible file. (not yet implemented)
-8.	Use the Bible Tagging utility to finalise the tagging by filling in missing tags and correcting as necessary.
+8.	Use the [**BibleTaggingUtility**](https://github.com/sabdelmalik/BibleTaggingUtility) to finalise the tagging by filling in missing tags and correcting as necessary.
 
 The application expects the folder containing the Bible file to be tagged, to contain also a Hebrew tags file (OT_Tags.txt) and a Greek tags file (NT_Tags.txt).
 All the files should have a verse per line starting with a verse reference.
