@@ -17,14 +17,14 @@ The program does the following:
 7.	Append the tagged NT file to the tagged OT file to generate the tagged Bible file. (not yet implemented)
 8.	Use the [**BibleTaggingUtility**](https://github.com/sabdelmalik/BibleTaggingUtility) to finalise the tagging by filling in missing tags and correcting as necessary.
 
-The application expects the folder containing the Bible file to be tagged, to contain also a Hebrew tags file (OT_Tags.txt) and a Greek tags file (NT_Tags.txt).
-All the files should have a verse per line starting with a verse reference.
-The verse reference is expected to be in the format <book> <chapter>:<verse>. e.g. Act 26:17
-Example from the bible text file:
-Gen 1:1 In the beginning God created the heavens and the earth.
-Example from the Hebrew Tags file:
-Gen 2:1 3615 8064 0776 3605 6635
-Example from the Greek Tags file:
-Joh 1:2 3778 1510 1722 0746 4314 3588 2316
+The application expects the folder containing the Bible file to be tagged, to contain also a Hebrew tags file (OT_Tags.txt) and a Greek tags file (NT_Tags.txt).<br>
+All the files should have a verse per line starting with a verse reference.<br>
+The verse reference is expected to be in the format <book> <chapter>:<verse>. e.g. Act 26:17<br>
+Example from the bible text file:<br>
+Gen 1:1 In the beginning God created the heavens and the earth.<br>
+Example from the Hebrew Tags file:<br>
+Gen 2:1 3615 8064 0776 3605 6635<br>
+Example from the Greek Tags file:<br>
+Joh 1:2 3778 1510 1722 0746 4314 3588 2316<br>
 The program creates a work folder “.BibleTagging” under the current user home directory
 e.g. C:\Users\<user name>\.BibleTagging
