@@ -11,7 +11,7 @@ The program does the following:
 1.	Splits the Bible text into OT and NT parts.
 2.	Passes the text through a stemmer if required, and removes a set of stop words if required.
 3.	Removes the verse references from the beginning of each verse and tags file.
-4.	Places the treated files in the in their appropriate location within the aligner folder hierarchy.
+4.	Places the treated files in their appropriate location within the aligner folder hierarchy.
 5.	Run the aligner for both the OT and NT which generates an aligner map for each.
 6.	Use the resulting maps to generate the tagged OT and NT.
 7.	Append the tagged NT file to the tagged OT file to generate the tagged Bible file. (not yet implemented)
