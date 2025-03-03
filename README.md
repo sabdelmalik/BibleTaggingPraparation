@@ -30,33 +30,33 @@ The program creates a work folder “.BibleTagging” under the current user hom
 e.g. C:\Users\<user name>\.BibleTagging
 # Berkely Aligner Configuration Example
 ## Training
-forwardModels	MODEL2;MODEL1
-reverseModels	MODEL1;HMM
-mode	JOINT;JOINT
-iters	15;15
+forwardModels	MODEL2;MODEL1<br>
+reverseModels	MODEL1;HMM<br>
+mode	JOINT;JOINT<br>
+iters	15;15<br>
 
 ## Execution
-execDir	NT_Map
-create	true
-overwriteExecDir	true
-saveParams	true
-numThreads	1
-msPerLine	30000
-alignTraining
+execDir	NT_Map<br>
+create	true<br>
+overwriteExecDir	true<br>
+saveParams	true<br>
+numThreads	1<br>
+msPerLine	30000<br>
+alignTraining<br>
 
 ## Language/Data
-foreignSuffix	s
-englishSuffix	t
+foreignSuffix	s<br>
+englishSuffix	t<br>
 lowercase
 
 ## Training sources
-trainSources	NT_Dataset\test;NT_Dataset\train
-sentences	MAX
+trainSources	NT_Dataset\test;NT_Dataset\train<br>
+sentences	MAX<br>
 
 ## Test sources
-testSources	NT_Dataset\test
-maxTestSentences	MAX
-offsetTestSentences	0
+testSources	NT_Dataset\test<br>
+maxTestSentences	MAX<br>
+offsetTestSentences	0<br>
 
 ## Evaluation
-competitiveThresholding
+competitiveThresholding<br>
