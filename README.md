@@ -1,7 +1,7 @@
-## BibleTaggingPreperation
+# BibleTaggingPreperation
 Prepare Bible text for the Tag Editing Utility
 
-## BibleTaggingPreperation
+# BibleTaggingPreperation
 Prepare Bible text for the Tag Editing Utility
 
 This program is inspired by Dr. Rev. David Instone-Brewer process for
@@ -28,14 +28,14 @@ Example from the Greek Tags file:<br>
 Joh 1:2 3778 1510 1722 0746 4314 3588 2316<br>
 The program creates a work folder “.BibleTagging” under the current user home directory
 e.g. C:\Users\<user name>\.BibleTagging
-## Berkely Aligner Configuration Example
-# Training
+# Berkely Aligner Configuration Example
+## Training
 forwardModels	MODEL2;MODEL1
 reverseModels	MODEL1;HMM
 mode	JOINT;JOINT
 iters	15;15
 
-# Execution
+## Execution
 execDir	NT_Map
 create	true
 overwriteExecDir	true
@@ -44,19 +44,19 @@ numThreads	1
 msPerLine	30000
 alignTraining
 
-# Language/Data
+## Language/Data
 foreignSuffix	s
 englishSuffix	t
 lowercase
 
-# Training sources
+## Training sources
 trainSources	NT_Dataset\test;NT_Dataset\train
 sentences	MAX
 
-# Test sources
+## Test sources
 testSources	NT_Dataset\test
 maxTestSentences	MAX
 offsetTestSentences	0
 
-# Evaluation
+## Evaluation
 competitiveThresholding
