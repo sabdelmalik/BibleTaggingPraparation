@@ -1,7 +1,7 @@
-# BibleTaggingPreperation
+# BibleTaggingPreparation
 Prepare Bible text for the Tag Editing Utility
 
-# BibleTaggingPreperation
+# BibleTaggingPreparation
 Prepare Bible text for the Tag Editing Utility
 
 This program is inspired by Dr. Rev. David Instone-Brewer process for
