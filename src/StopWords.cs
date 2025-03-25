@@ -19,6 +19,9 @@ namespace BibleTagging
         public static Dictionary<string, string> EnglishNT1 = new Dictionary<string, string>();
         public static Dictionary<string, string> EnglishNT2 = new Dictionary<string, string>();
 
+        public static List<string> StrongsOT = new List<string>();
+        public static List<string> StrongsNT = new List<string>();
+
 
         private static string[] ConjoinedNT = new string[]
         {
@@ -59,7 +62,7 @@ namespace BibleTagging
             "G1302=διατί=why?",
             "G4219=πότε=when?",
             "G4459=πῶς=how?!",
-        };
+         };
 
         private static string[] ConjoinedOT = new string[]
         {
@@ -187,41 +190,46 @@ namespace BibleTagging
 "why","when","how","no","not","neither","nor","not","neither",
 "not yet","never again",*/
 
-          "a", "an", "and", "are", "as", "at", "be", "but", "by",
+/*          "a", "an", "and", "are", "as", "at", "be", "but", "by",
           "for", "if", "in", "into", "is", "it",
           "no", "not", "of", "on", "or", "such",
-          "that", "the", /*"their",*/ "then", "there", /*"these",*/
+          "that", "the", "their", "then", "there", "these",
           "they", "this", "to", "was", "will", "with",
+           "in", "is", "but",*/
           ",", ":", ".", "‘", ".’", "(", ").", "?", ",’",
           "‘“", ";", ".”", "’", "“", "!", "?’", "–", ",”",
           "!”", "”;", "”", "?”", "!’", "”?", "’;", ")", "[",
           "]", "”,", ");", "),", ".)", "”.", "[[", "]]",
-          "”’", "’”", "):", "?)", "‘‘",
+          "”’", "’”", "):", "?)", "‘‘", "?”’", "?’", ".”’",
       };
 
         public static void PopulateStopDictionaries(BibleTaggingPreperationForm form)
         {
-            PopulateStopDictionaries(ConjoinedOT, EnglishOT1, EnglishOT2, form);
-            PopulateStopDictionaries(ConjoinedNT, EnglishNT1, EnglishNT2, form);
+            PopulateStopDictionaries(ConjoinedOT, EnglishOT1, EnglishOT2, StrongsOT, form);
+            PopulateStopDictionaries(ConjoinedNT, EnglishNT1, EnglishNT2, StrongsNT, form);
         }
 
         private static void PopulateStopDictionaries(string[] Conjoined,
             Dictionary<string, string> single_words, 
             Dictionary<string, string> multipleWords,
+            List<string> strongsList,
             BibleTaggingPreperationForm form)
         {
             foreach (string s in Conjoined)
             {
-                Match match = Regex.Match(s, @"([GH][0-9]{4})=(.+)=((\/?([a-zA-Z -]+))*$)"); //(\/?([a-zA-Z -]+))*");
+                Match match = Regex.Match(s, @"([GH][0-9]{4})=(.+)=((\/?([a-zA-Z -]+)\/?)*$)"); //(\/?([a-zA-Z -]+))*");
 
                 if (match.Success)
                 {
-                    string strongs = match.Groups[1].Value.Replace("G", "").Replace("H","");                    string text = match.Groups[3].Value;
+                    string dStrong = match.Groups[1].Value;                    
+                    string strongs = dStrong.Replace("G", "").Replace("H","");                     
+                    string text = match.Groups[3].Value;
                     if (string.IsNullOrEmpty(text))
                     {
                         form.TraceError(MethodBase.GetCurrentMethod().Name, "Text was null or empty");
                         continue;
                     }
+                    strongsList.Add(dStrong);
                     string[] strings = text.Split(new char[] { '/' });
                     foreach(string s2 in strings)
                     {

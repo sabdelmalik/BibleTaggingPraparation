@@ -23,7 +23,8 @@ namespace BibleTagging
         private const char sourceVsTxSeperator = ' ';
 
         private bool zokam = false;
-        private bool niv = true;
+        private bool leb = true;
+        private bool niv = false;
 
         SpecialFunctions sf;
 
@@ -90,8 +91,8 @@ namespace BibleTagging
             if (Directory.Exists(workFolder))
             {
                 string[] files = Directory.GetFiles(workFolder);
-                foreach(string file in files)
-                    File.Delete(file);
+                //foreach(string file in files)
+                //    File.Delete(file);
             }
             else
             { 
@@ -118,7 +119,7 @@ namespace BibleTagging
                 Trace("\r\nProcessing: " + bibleFilePath, Color.Blue);
                 if (!string.IsNullOrEmpty(bibleFilePath))
                 {
-                    ValidateBibleFile(bibleFilePath);
+                    //ValidateBibleFile(bibleFilePath);
                     Split(bibleFilePath);
                     BerkeleyAligner ba = new BerkeleyAligner(this);
                     string ntTagPath = Path.Combine(Path.GetDirectoryName(bibleFilePath), "NT_Tags.txt");
@@ -127,16 +128,17 @@ namespace BibleTagging
                     {
                         ntTagPath = Path.Combine(Path.GetDirectoryName(bibleFilePath), "NIV_NT_Tags.txt");
                     }
-                    if (niv)
+                    if (niv  || leb)
                     {
-                        ba.PrepareNT(ntFilePath, ntTagPath, new PorterStemmer(), StopWords.EnglishNT1.Keys.ToArray());
-                        //ba.PrepareNT(ntFilePath, ntTagPath, null, StopWords.English);
+                        //ba.PrepareNT(ntFilePath, ntTagPath, new PorterStemmer(), StopWords.EnglishNT1.Keys.ToArray(), StopWords.StrongsNT.ToArray());
+                        //ba.PrepareNT(ntFilePath, ntTagPath, null, StopWords.EnglishNT1.Keys.ToArray(), StopWords.StrongsNT.ToArray());
+                        ba.PrepareNT(ntFilePath, ntTagPath, null, null, null);
                         ba.AlignNT();
                         ba.ProcessAlignerMapNT(ntFilePath, StopWords.EnglishNT1, StopWords.EnglishNT2);
                     }
                     if(zokam)
                     {
-                        ba.PrepareNT(ntFilePath, ntTagPath, null, null);
+                        ba.PrepareNT(ntFilePath, ntTagPath, null, null, null);
                         ba.AlignNT();
                         ba.ProcessAlignerMapNT(ntFilePath, null, null);
 
@@ -233,7 +235,7 @@ namespace BibleTagging
 
             otFilePath = Path.Combine(workFolder, bibleFileName + "_OT.txt");
             ntFilePath = Path.Combine(workFolder, bibleFileName + "_NT.txt");
-
+            return;
             if (File.Exists(otFilePath)) File.Delete(otFilePath);
             if (File.Exists(ntFilePath)) File.Delete(ntFilePath);
 

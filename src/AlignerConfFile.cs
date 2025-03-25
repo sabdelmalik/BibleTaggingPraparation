@@ -10,8 +10,8 @@ namespace BibleTagging
     {
         public AlignerConfFile(string filePath, 
             int iterations1, int iterations2,
-            string mapFolderName,
             int threads,
+            string mapFolderName,
             string foreignSuffix,
             string englishSuffix,
             string trainSourcesFolder,
@@ -35,10 +35,12 @@ namespace BibleTagging
                 */
 
                 sw.WriteLine("# Training");
-                sw.WriteLine("forwardModels\tMODEL1;HMM");
+                //sw.WriteLine("forwardModels\tMODEL1;MODEL2;HMM");
+                //sw.WriteLine("reverseModels\tMODEL1;MODEL2;HMM");
+                sw.WriteLine("forwardModels\tMODEL1;SYNTACTIC"); //SYNTACTIC");
                 sw.WriteLine("reverseModels\tMODEL1;HMM");
                 sw.WriteLine("mode\tJOINT;JOINT");
-                sw.WriteLine(string.Format("iters\t{0};{1}"), iterations1, iterations2);
+                sw.WriteLine(string.Format("iters\t{0};{1}", iterations1, iterations2));
                 sw.WriteLine();
                 /*
                 ###############################################
@@ -52,7 +54,7 @@ namespace BibleTagging
 
                 sw.WriteLine("saveParams\ttrue");
                 sw.WriteLine(string.Format("numThreads\t{0}", threads));
-                sw.WriteLine("msPerLine\t10000");
+                sw.WriteLine("msPerLine\t30000");
                 sw.WriteLine("alignTraining");
                 //sw.WriteLine("leaveTrainingOnDisk");
                 //sw.WriteLine("searchForThreshold");
@@ -65,7 +67,7 @@ namespace BibleTagging
                 sw.WriteLine("# Language/Data");
                 sw.WriteLine(string.Format("foreignSuffix\t{0}", foreignSuffix));
                 sw.WriteLine(string.Format("englishSuffix\t{0}", englishSuffix));
-                //sw.WriteLine("lowercase");
+                sw.WriteLine("lowercase");
                 sw.WriteLine();
                 /*
                 # Choose the training sources, which can either be directories or files that list files/directories
